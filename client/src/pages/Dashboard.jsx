@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DOMPurify from 'dompurify';
+import { useTheme } from '../context/ThemeContext';
 import {
   FileText,
   Pin,
@@ -13,6 +14,9 @@ import {
   Trash2,
   RotateCcw,
   XCircle,
+  Download,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -35,6 +39,7 @@ const CARD_COLORS = [
 
 function Dashboard() {
   const { user, logoutUser } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [trashNotes, setTrashNotes] = useState([]);
@@ -42,6 +47,7 @@ function Dashboard() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [view, setView] = useState('all'); // 'all' | 'pinned' | 'trash'
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (view === 'trash') {
@@ -105,6 +111,28 @@ function Dashboard() {
     }
   };
 
+  const handleExport = (note, e) => {
+    e.stopPropagation();
+    const exportData = {
+      title: note.title,
+      content: note.content,
+      isPinned: note.isPinned,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${note.title.replace(/[^a-z0-9]/gi, '_') || 'note'}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleRestore = async (id, e) => {
     e.stopPropagation();
     try {
@@ -150,12 +178,12 @@ function Dashboard() {
 
   let content;
   if (loading) {
-    content = <p className="text-gray-500 text-sm">Loading...</p>;
+    content = <p className="text-gray-500 dark:text-gray-400 text-sm">Loading...</p>;
   } else if (filteredNotes.length === 0) {
     content = (
       <div className="text-center py-20">
-        <StickyNote className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500">
+        <StickyNote className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+        <p className="text-gray-500 dark:text-gray-400">
           {search ? 'No notes match your search' : emptyMessages[view]}
         </p>
       </div>
@@ -219,6 +247,14 @@ function Dashboard() {
                       </button>
                       <button
                         type="button"
+                        onClick={(e) => handleExport(note, e)}
+                        title="Export as JSON"
+                        className={`${color.accent} hover:opacity-70`}
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={(e) => handleDelete(note._id, e)}
                         className={`${color.accent} hover:text-red-600 text-sm`}
                       >
@@ -240,24 +276,26 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col p-5 sticky top-0 h-screen">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
+      <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col p-5 sticky top-0 h-screen">
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white font-bold">
+          <div className="w-8 h-8 bg-gray-900 dark:bg-gray-100 rounded-lg flex items-center justify-center text-white dark:text-gray-900 font-bold">
             N
           </div>
-          <span className="text-lg font-bold text-gray-900">Notes</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-white">Notes</span>
         </div>
 
         <nav className="flex-1">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
             Main
           </p>
           <button
             type="button"
             onClick={() => setView('all')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm mb-1 transition-colors ${
-              view === 'all' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'
+              view === 'all'
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -267,7 +305,9 @@ function Dashboard() {
             type="button"
             onClick={() => setView('pinned')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm mb-1 transition-colors ${
-              view === 'pinned' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'
+              view === 'pinned'
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <Pin className="w-4 h-4" />
@@ -277,33 +317,68 @@ function Dashboard() {
             type="button"
             onClick={() => setView('trash')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm mb-1 transition-colors ${
-              view === 'trash' ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50'
+              view === 'trash'
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <Trash2 className="w-4 h-4" />
             Trash
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/settings')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm mb-1 text-gray-500 hover:bg-gray-50 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Settings
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSettings((prev) => !prev)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-sm mb-1 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              Settings
+            </button>
+            {showSettings && (
+              <div className="absolute left-0 top-full mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTheme();
+                    setShowSettings(false);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    {isDark ? 'Light mode' : 'Dark mode'}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
-        <div className="border-t border-gray-100 pt-4 mt-4">
-          <div className="flex items-center gap-3 px-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-semibold">
-              {user?.name?.[0]?.toUpperCase()}
-            </div>
-            <span className="text-sm font-medium text-gray-700 truncate">{user?.name}</span>
-          </div>
+        <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-4">
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="w-full flex items-center gap-3 px-2 py-2 mb-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            {user?.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 flex items-center justify-center text-sm font-semibold">
+                {user?.name?.[0]?.toUpperCase()}
+              </div>
+            )}
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
+              {user?.name}
+            </span>
+          </button>
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-2 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -314,8 +389,12 @@ function Dashboard() {
       <main className="flex-1 p-8">
         <div className="flex justify-between items-center mb-6 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{viewTitles[view]}</h2>
-            <p className="text-sm text-gray-500">{filteredNotes.length} notes</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {viewTitles[view]}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {filteredNotes.length} notes
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -325,14 +404,14 @@ function Dashboard() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search notes..."
-                className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-56 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg text-sm w-56 focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 focus:border-transparent"
               />
             </div>
             {view !== 'trash' && (
               <button
                 type="button"
                 onClick={() => navigate('/notes/new')}
-                className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-2"
+                className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 New Note
@@ -342,7 +421,9 @@ function Dashboard() {
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">{error}</p>
+          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-lg mb-4">
+            {error}
+          </p>
         )}
 
         {content}

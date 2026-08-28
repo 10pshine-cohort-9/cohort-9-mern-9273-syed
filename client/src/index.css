@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
 .note-editor-card .ql-toolbar.ql-snow {
   border: none;
   border-bottom: 1px solid #e5e7eb;
@@ -34,4 +36,31 @@
 .note-editor-card .ql-toolbar.ql-snow button:hover,
 .note-editor-card .ql-toolbar.ql-snow button.ql-active {
   background-color: #e5e7eb;
+}
+
+/* Dark mode Quill editor overrides */
+.dark .note-editor-card .ql-toolbar.ql-snow {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+.dark .note-editor-card .ql-toolbar.ql-snow .ql-stroke {
+  stroke: #d1d5db;
+}
+
+.dark .note-editor-card .ql-toolbar.ql-snow .ql-fill {
+  fill: #d1d5db;
+}
+
+.dark .note-editor-card .ql-toolbar.ql-snow button:hover,
+.dark .note-editor-card .ql-toolbar.ql-snow button.ql-active {
+  background-color: #374151;
+}
+
+.dark .note-editor-card .ql-editor {
+  color: #e5e7eb;
+}
+
+.dark .note-editor-card .ql-editor.ql-blank::before {
+  color: #6b7280;
 }
